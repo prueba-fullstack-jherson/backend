@@ -3,6 +3,10 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Sequelize } from 'sequelize-typescript';
 import { Course } from './courses/course.model';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 async function bootstrap() {
   // Initialize Sequelize (sqlite) and sync models before starting the app
@@ -16,29 +20,22 @@ async function bootstrap() {
   await sequelize.sync({ alter: true });
 
   const app = await NestFactory.create(AppModule);
-  // Ensure app modules are initialized so swagger can scan routes reliably
-  await app.init();
 
+  // Swagger configuration
   const config = new DocumentBuilder()
     .setTitle('Prueba Backend - Courses API')
     .setDescription('API CRUD para gestionar cursos')
     .setVersion('1.0')
+    .addTag('courses')
     .build();
 
-  try {
-    const document = SwaggerModule.createDocument(app, config, {
-      include: [AppModule],
-    });
-    SwaggerModule.setup('api', app, document);
-  } catch (err) {
-    // If swagger scanning fails (version/internal differences), continue without Swagger
-    // and log the error so the server still starts and the CRUD remains usable.
-    // You can re-enable Swagger later after aligning @nestjs/swagger with your Nest version.
-    // eslint-disable-next-line no-console
-    console.warn('Swagger setup skipped due to error:', err?.message ?? err);
-  }
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('swagger-ui', app, document);
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`Application is running on: http://localhost:${port}`);
+  console.log(`Swagger UI available at: http://localhost:${port}/swagger-ui`);
 }
 
 bootstrap();
